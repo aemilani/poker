@@ -1,4 +1,5 @@
 import random
+from poker.utils import get_hand_value
 
 
 class Player:
@@ -10,6 +11,7 @@ class Player:
         self.hand = []
         self.table = []
         self.placed_bet = 0
+        self.action = None
 
         if self.is_bot:
             if self.player_type == 'rand':
@@ -43,8 +45,8 @@ class Player:
                 print("Hands are not dealt yet.")
                 return None
             elif len(cards) == 2:  # Pre-flop
-                val = sum([card.value for card in cards])
-                max_val = 24
+                val = get_hand_value(cards)
+                max_val = 169
                 if val >= self.tightness * max_val:  # play
                     bet_thr = val / max_val * (1 - self.aggressiveness)
                     max_bet_amount = val / max_val * self.aggressiveness * self.stack
@@ -56,6 +58,10 @@ class Player:
                         return "check/fold"
                 else:
                     return "check/fold"
+            elif 5 <= len(cards) <= 7:  # Post-flop
+                ...
+            else:
+                print("Error in the number of cards dealt.")
         else:
             print("Player is not bot.")
             return None
@@ -66,7 +72,13 @@ class Player:
 
     def win(self, amount: float) -> None:
         self.stack += amount
+        self.hand = []
+        self.table = []
         self.placed_bet = 0
+        self.action = None
 
     def lose(self) -> None:
+        self.hand = []
+        self.table = []
         self.placed_bet = 0
+        self.action = None

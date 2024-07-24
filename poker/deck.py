@@ -6,7 +6,7 @@ class Deck(list):
     def __init__(self):
         super().__init__()
         for suit in range(4):
-            for value in range(13):
+            for value in range(2, 15):
                 self.append(Card(suit, value))
 
     def shuffle(self) -> None:
@@ -17,3 +17,12 @@ class Deck(list):
         for _ in range(n_cards):
             dealt_cards.append(self.pop(0))
         return dealt_cards
+
+
+if __name__ == "__main__":
+    deck = Deck()
+    deck.shuffle()
+    hand = deck.deal(2)
+    from utils import hand_code
+    print(hand)
+    print(hand_code(hand))

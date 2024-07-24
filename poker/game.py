@@ -1,10 +1,5 @@
 import random
-
 from poker.player import Player
-
-
-actions = ['bet', 'raise', 'call', 'check', 'fold']
-player_types = ['la', 'lp', 'ta', 'tp']
 
 
 class Game:

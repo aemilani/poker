@@ -22,7 +22,7 @@ class Suit(Enum):
 
 
 suit_dict = {0: Suit.CLUB.value, 1: Suit.DIAMOND.value, 2: Suit.HEART.value, 3: Suit.SPADE.value}
-value_dict = {9: "J", 10: "Q", 11: "K", 12: "A"}
+value_dict = {11: "J", 12: "Q", 13: "K", 14: "A"}
 
 
 class Card:
@@ -34,4 +34,22 @@ class Card:
         if self.value in value_dict:
             return value_dict[self.value] + suit_dict[self.suit]
         else:
-            return str(self.value + 2) + suit_dict[self.suit]
+            return str(self.value) + suit_dict[self.suit]
+
+    def __gt__(self, other):
+        return self.value > other.value
+
+    def __lt__(self, other):
+        return self.value < other.value
+
+    def __eq__(self, other):
+        return self.value == other.value
+
+    def __ge__(self, other):
+        return self.value >= other.value
+
+    def __le__(self, other):
+        return self.value <= other.value
+
+    def __add__(self, other):
+        return self.value + other.value
