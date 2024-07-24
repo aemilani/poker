@@ -1,50 +1,26 @@
-from player import Player
-from deck import Deck
+import random
+
+from poker.player import Player
 
 
-betting_streets = ['pre-flop', 'flop', 'turn', 'river']
+actions = ['bet', 'raise', 'call', 'check', 'fold']
+player_types = ['la', 'lp', 'ta', 'tp']
 
 
 class Game:
-    def __init__(self, sb: float, bb: float, pot: float = 0):
+    def __init__(self, sb: float, bb: float):
         self.sb = sb
         self.bb = bb
         self.players = []
-        self.pot = pot
 
-    def add_player(self, stack):
-        self.players.append(Player(position=len(self.players), stack=stack))
+    def add_player(self, name: str, stack: float, is_bot: bool = True, player_type: str = 'rand') -> None:
+        self.players.append(Player(name=name, stack=stack, is_bot=is_bot, player_type=player_type))
 
-    def play_round(self, dealer_position: int = 0):
-        n_players = len(self.players)
+    def print_players(self) -> None:
+        print([player.name for player in self.players])
 
-        deck = Deck()
-        deck.shuffle()
+    def shuffle_players(self) -> None:
+        random.shuffle(self.players)
 
-        if n_players > 2:
-            self.players[dealer_position + 1].bet(self.sb)
-            self.players[dealer_position + 2].bet(self.bb)
-        else:
-            self.players[dealer_position].bet(self.sb)
-            self.players[dealer_position + 1].bet(self.bb)
-
-        self.pot += self.sb
-        self.pot += self.bb
-
-        for i in range(n_players):
-            position = (dealer_position + i) % n_players
-            self.players[position].cards = deck.deal(2)
-
-        # Pre-flop betting round
-
-        community_cards = deck.deal(3)
-
-        # Flop betting round
-
-        community_cards.extend(deck.deal(1))
-
-        # Turn betting round
-
-        community_cards.extend(deck.deal(1))
-
-        # River betting round
+    def reorder_players(self, position: int) -> None:
+        self.players = self.players[position:] + self.players[:position]
