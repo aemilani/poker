@@ -48,9 +48,9 @@ class Player:
                 val = get_hand_value(cards)
                 max_val = 169
                 if val >= self.tightness * max_val:  # play
-                    bet_thr = val / max_val * (1 - self.aggressiveness)
+                    bet_thr = 1 - val / max_val * self.aggressiveness
                     max_bet_amount = val / max_val * self.aggressiveness * self.stack
-                    max_bet_amount = round(max_bet_amount, 2)
+                    max_bet_amount = int(max_bet_amount)
                     bet_rand = random.random()
                     if bet_rand >= bet_thr:
                         return f"call/raise {max_bet_amount}"

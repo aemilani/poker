@@ -1,5 +1,6 @@
 import random
 from poker.card import Card
+from poker.constants import ConvDict
 
 
 def get_random_names(n: int = 5) -> list[str]:
@@ -35,16 +36,14 @@ def get_hand_value(hand: list[Card]) -> int:
 
 
 def card_str(card: Card) -> str:
-    suit_dict = {0: "C", 1: "D", 2: "H", 3: "S"}
-    value_dict = {10: "T", 11: "J", 12: "Q", 13: "K", 14: "A"}
-    _str = ""
-    _str += str(card.value) if card.value < 10 else value_dict[card.value]
-    _str += suit_dict[card.suit]
+    _str = ''
+    _str += ConvDict.RANK[card.rank]
+    _str += ConvDict.SUIT_STR[card.suit]
     return _str
 
 
 def hand_code(hand: list[Card]) -> str:
-    _str = ""
+    _str = ''
     for card in hand:
         _str += card_str(card)
     vals = _str[0::2]
@@ -53,6 +52,65 @@ def hand_code(hand: list[Card]) -> str:
     else:
         suits = _str[1::2]
         if suits[0] == suits[1]:
-            return vals + "s"
+            return vals + 's'
         else:
-            return vals + "o"
+            return vals + 'o'
+
+
+def find_combos(full_hand: list[Card]) -> list[str]:
+    full_hand = [card_str(card) for card in full_hand]
+    ranks = set([c[0] for c in full_hand])
+    suits = set([c[1] for c in full_hand])
+    rank_counts = {r: ''.join(full_hand).count(r) for r in ranks}
+    rank_counts = dict(sorted(rank_counts.items(), key=lambda x: ConvDict.RANK[x[0]], reverse=True))
+    suit_counts = {s: ''.join(full_hand).count(s) for s in suits}
+
+    combos = []
+
+    if max(suit_counts.values()) >= 5:
+        for suit, count in suit_counts.items():
+            suit_cards = sorted([c for c in full_hand if c[1] == suit], key=lambda x: ConvDict.RANK[x[0]])
+            if suit_cards[-1][0] == 'A':
+                if suit_cards[-5][0] == 'T':
+                    combos.append(('royal_flush',))
+                if suit_cards[0][0] == 2 and suit_cards[3][0] == 5:
+                    combos.append(('straight_flush', '5'))
+            else:
+                for i in range(len(suit_cards) - 4):
+                    if ConvDict.RANK[suit_cards[i + 4][0]] - ConvDict.RANK[suit_cards[i][0]] == 4:
+                        combos.append(('straight_flush', {suit_cards[i + 4][0]}))
+            combos.append(('flush', {ConvDict.RANK(max([ConvDict.RANK[card[0]] for card in suit_cards]))}))
+
+    if max(rank_counts.values()) == 4:
+        combos.append('four_of_a_kind', {[rank for rank, count in rank_counts.items() if count == 4][0]})
+
+    if max(rank_counts.values()) == 3:
+        r3 = max([rank for rank, count in rank_counts.items() if count == 3], key=lambda x: ConvDict.RANK[x])
+        if 2 in rank_counts.values():
+            r2 = max([rank for rank, count in rank_counts.items() if count == 2], key=lambda x: ConvDict.RANK[x])
+            combos.append(('full_house', r3, r2))
+        else:
+            combos.append(('three_of_a_kind', r3))
+
+    if max(rank_counts.values()) == 2:
+        pairs = sorted([rank for rank, count in rank_counts.items() if count == 2], key=lambda x: ConvDict.RANK[x],
+                       reverse=True)
+        if len(pairs) >= 2:
+            combos.append(('two_pair', pairs[0], pairs[1]))
+        else:
+            combos.append(('pair', pairs[0]))
+
+    combos.append(('high_card', max(ranks, key=lambda x: ConvDict.RANK[x])))
+
+    return combos
+
+
+if __name__ == "__main__":
+    from poker.deck import Deck
+    deck = Deck()
+    deck.shuffle()
+    hand = deck.deal(2)
+    table = deck.deal(3)
+    print(hand, table)
+
+    print(find_combos(hand + table))

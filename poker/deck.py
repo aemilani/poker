@@ -23,6 +23,5 @@ if __name__ == "__main__":
     deck = Deck()
     deck.shuffle()
     hand = deck.deal(2)
-    from utils import hand_code
-    print(hand)
-    print(hand_code(hand))
+    table = deck.deal(3)
+    print(hand, table)
