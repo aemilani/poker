@@ -57,46 +57,97 @@ def hand_code(hand: list[Card]) -> str:
             return vals + 'o'
 
 
-def find_combos(full_hand: list[Card]) -> list[str]:
+def find_indices_of_largest_connected_ones(arr: list[int]) -> list[int]:
+    max_start = max_end = start = end = -1
+    max_length = length = 0
+
+    for i, num in enumerate(arr):
+        if num == 1:
+            if length == 0:
+                start = i
+            length += 1
+            end = i
+        else:
+            if length > max_length:
+                max_length = length
+                max_start = start
+                max_end = end
+            length = 0
+
+    # Final check in case the longest sequence ends at the end of the list
+    if length > max_length:
+        max_start = start
+        max_end = end
+
+    return list(range(max_start, max_end + 1))
+
+
+def find_straight(cards: list[str]) -> list[str] | None:
+    if len(cards) < 5:
+        return None
+    ranks = sorted(set([c[0] for c in cards]), key=lambda x: ConvDict.RANK[x], reverse=True)
+    ranks_int = [ConvDict.RANK[r] for r in ranks]
+
+    if ranks[0] == 'A':
+        ranks_int.insert(len(ranks), 1)
+    diffs = [ranks_int[i] - ranks_int[i + 1] for i in range(len(ranks_int) - 1)]
+    straight_indices = find_indices_of_largest_connected_ones(diffs)
+    if len(straight_indices) >= 4:
+        if len(ranks) == len(ranks_int):
+            return ranks[straight_indices[0]:straight_indices[-1] + 2]
+        else:
+            if ranks[straight_indices[0]] == 'A':
+                return ranks[straight_indices[0]:straight_indices[-1] + 2]
+            else:
+                return ranks[straight_indices[0]:straight_indices[-1] + 1] + [ranks[0]]
+    else:
+        return None
+
+
+def find_combos(full_hand: list[Card]) -> list[tuple[str, str]]:
     full_hand = [card_str(card) for card in full_hand]
-    ranks = set([c[0] for c in full_hand])
+    ranks = sorted(set([c[0] for c in full_hand]), key=lambda x: ConvDict.RANK[x], reverse=True)
     suits = set([c[1] for c in full_hand])
     rank_counts = {r: ''.join(full_hand).count(r) for r in ranks}
     rank_counts = dict(sorted(rank_counts.items(), key=lambda x: ConvDict.RANK[x[0]], reverse=True))
     suit_counts = {s: ''.join(full_hand).count(s) for s in suits}
+    suit_counts = dict(sorted(suit_counts.items(), key=lambda x: x[1], reverse=True))
 
     combos = []
 
-    if max(suit_counts.values()) >= 5:
-        for suit, count in suit_counts.items():
-            suit_cards = sorted([c for c in full_hand if c[1] == suit], key=lambda x: ConvDict.RANK[x[0]])
-            if suit_cards[-1][0] == 'A':
-                if suit_cards[-5][0] == 'T':
-                    combos.append(('royal_flush',))
-                if suit_cards[0][0] == 2 and suit_cards[3][0] == 5:
-                    combos.append(('straight_flush', '5'))
+    if suit_counts[list(suit_counts.keys())[0]] >= 5:
+        suit = list(suit_counts.keys())[0]
+        suit_cards = sorted([c for c in full_hand if c[1] == suit], key=lambda x: ConvDict.RANK[x[0]])
+        straight_cards = find_straight(suit_cards)
+        if straight_cards:
+            if 'A' in straight_cards and 'K' in straight_cards:
+                combos.append(('royal_flush', ''))
             else:
-                for i in range(len(suit_cards) - 4):
-                    if ConvDict.RANK[suit_cards[i + 4][0]] - ConvDict.RANK[suit_cards[i][0]] == 4:
-                        combos.append(('straight_flush', {suit_cards[i + 4][0]}))
-            combos.append(('flush', {ConvDict.RANK(max([ConvDict.RANK[card[0]] for card in suit_cards]))}))
+                combos.append(('straight_flush', ''.join(straight_cards)))
+        else:
+            combos.append(('flush', ''.join([card[0] for card in suit_cards[::-1]])))
 
     if max(rank_counts.values()) == 4:
-        combos.append('four_of_a_kind', {[rank for rank, count in rank_counts.items() if count == 4][0]})
+        combos.append(('four_of_a_kind', [rank for rank, count in rank_counts.items() if count == 4][0]))
 
-    if max(rank_counts.values()) == 3:
+    if max(rank_counts.values()) == 3 and 2 in rank_counts.values():
         r3 = max([rank for rank, count in rank_counts.items() if count == 3], key=lambda x: ConvDict.RANK[x])
-        if 2 in rank_counts.values():
-            r2 = max([rank for rank, count in rank_counts.items() if count == 2], key=lambda x: ConvDict.RANK[x])
-            combos.append(('full_house', r3, r2))
-        else:
-            combos.append(('three_of_a_kind', r3))
+        r2 = max([rank for rank, count in rank_counts.items() if count == 2], key=lambda x: ConvDict.RANK[x])
+        combos.append(('full_house', ''.join([r3, r2])))
+
+    straight_cards = find_straight(full_hand)
+    if straight_cards:
+        combos.append(('straight', ''.join(straight_cards)))
+
+    if max(rank_counts.values()) == 3 and 2 not in rank_counts.values():
+        r3 = max([rank for rank, count in rank_counts.items() if count == 3], key=lambda x: ConvDict.RANK[x])
+        combos.append(('three_of_a_kind', r3))
 
     if max(rank_counts.values()) == 2:
         pairs = sorted([rank for rank, count in rank_counts.items() if count == 2], key=lambda x: ConvDict.RANK[x],
                        reverse=True)
         if len(pairs) >= 2:
-            combos.append(('two_pair', pairs[0], pairs[1]))
+            combos.append(('two_pair', ''.join(pairs)))
         else:
             combos.append(('pair', pairs[0]))
 
@@ -110,7 +161,7 @@ if __name__ == "__main__":
     deck = Deck()
     deck.shuffle()
     hand = deck.deal(2)
-    table = deck.deal(3)
+    table = deck.deal(5)
     print(hand, table)
 
     print(find_combos(hand + table))
