@@ -1,15 +1,16 @@
 import random
-from poker.utils import get_hand_value
+from poker.utils import get_hand_value, get_full_hand_value
+from poker.constants import ConvDict
 
 
 class Player:
-    def __init__(self, name: str, stack: float, is_bot: bool = True, player_type: str = 'rand'):
+    def __init__(self, name: str, stack: int, is_bot: bool = True, player_type: str = 'rand'):
         self.name = name
         self.stack = stack
         self.is_bot = is_bot
         self.player_type = player_type
-        self.hand = []
-        self.table = []
+        self.hand = None
+        self.table = None
         self.placed_bet = 0
         self.action = None
 
@@ -59,26 +60,58 @@ class Player:
                 else:
                     return "check/fold"
             elif 5 <= len(cards) <= 7:  # Post-flop
-                ...
+                combos = get_full_hand_value(cards)
+                if combos[0][0] == 'high_card':
+                    return "check/fold"
+                elif combos[0][0] == 'pair':
+                    if combos[0][1] in [ConvDict.RANK[c.rank] for c in self.hand]:
+                        return "call"
+                    else:
+                        return "check/fold"
+                elif combos[0][0] == 'two_pair':
+                    if combos[0][1][0] in [ConvDict.RANK[c.rank] for c in self.hand] or \
+                            combos[0][1][1] in [ConvDict.RANK[c.rank] for c in self.hand]:
+                        return "call"
+                    else:
+                        return "check/fold"
+                elif combos[0][0] == 'three_of_a_kind':
+                    if combos[0][1] in [ConvDict.RANK[c.rank] for c in self.hand]:
+                        return f"raise {int(0.1 * self.stack) + 1}"
+                    else:
+                        return "check/fold"
+                elif combos[0][0] == 'straight':
+                    if ConvDict.RANK[self.hand[0].rank] in combos[0][1] or \
+                            ConvDict.RANK[self.hand[1].rank] in combos[0][1]:
+                        return f"raise {int(0.2 * self.stack) + 1}"
+                    else:
+                        return "check/fold"
+                elif combos[0][0] == 'full_house':
+                    if combos[0][1][0] in [ConvDict.RANK[c.rank] for c in self.hand] or \
+                            combos[0][1][1] in [ConvDict.RANK[c.rank] for c in self.hand]:
+                        return f"raise {int(0.6 * self.stack) + 1}"
+                    else:
+                        return "check/fold"
+                else:
+                    return "all_in"
             else:
                 print("Error in the number of cards dealt.")
         else:
             print("Player is not bot.")
             return None
 
-    def bet(self, amount: float) -> None:
+    def bet(self, amount: int) -> None:
+        if amount > self.stack:
+            amount = self.stack
         self.stack -= amount
         self.placed_bet += amount
 
-    def win(self, amount: float) -> None:
+    def win(self, amount: int) -> None:
         self.stack += amount
         self.hand = []
         self.table = []
         self.placed_bet = 0
-        self.action = None
 
     def lose(self) -> None:
         self.hand = []
         self.table = []
         self.placed_bet = 0
-        self.action = None
